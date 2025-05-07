@@ -1,23 +1,22 @@
-import org.apache.spark.sql.SparkSession
+import scala.io.Source
 
-object WordCountSpark {
-  def main(args: Array[String]): Unit = {
-    val spark = SparkSession.builder()
-      .appName("Word Count")
-      .master("local[*]")
-      .getOrCreate()
-
-    val sc = spark.sparkContext
-    val inputFile = "input.txt" // Replace with your file path
-
-    val lines = sc.textFile(inputFile)
-    val words = lines.flatMap(_.split("\\s+"))
-    val wordCounts = words.map(word => (word, 1)).reduceByKey(_ + _)
-
-    wordCounts.collect().foreach { case (word, count) =>
-      println(s"$word -> $count")
+object WordCount {
+    def main(args: Array[String]): Unit = {
+        val filename = "input.txt"
+        val wordCounts = countWords(filename)
+        wordCounts.foreach { case (word, count) =>
+            println(s"$word: $count")
+        }
     }
 
-    spark.stop()
-  }
+    def countWords(filename: String): Map[String, Int] = {
+        val source = Source.fromFile(filename)
+        val wordCounts = source.getLines()
+            .flatMap(_.split(" "))
+            .foldLeft(Map.empty[String, Int].withDefaultValue(0)) { (counts, word) =>
+                counts.updated(word.toLowerCase, counts(word.toLowerCase) + 1)
+            }
+        source.close()
+        wordCounts
+    }
 }
